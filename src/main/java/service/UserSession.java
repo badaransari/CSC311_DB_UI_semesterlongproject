@@ -6,7 +6,7 @@ import java.util.prefs.Preferences;
 
 public class UserSession {
 
-    private static UserSession instance;
+    private static volatile UserSession instance;
 
     private String userName;
 
@@ -32,7 +32,7 @@ public class UserSession {
         return instance;
     }
 
-    public static UserSession getInstace(String userName,String password) {
+    public static UserSession getInstance(String userName,String password) {
         if(instance == null) {
             instance = new UserSession(userName, password, "NONE");
         }
@@ -51,9 +51,12 @@ public class UserSession {
     }
 
     public void cleanUserSession() {
-        this.userName = "";// or null
-        this.password = "";
-        this.privileges = "";// or null
+        // Synchronize to ensure visibility of changes across threads
+        synchronized (UserSession.class) {
+            this.userName = "";// or null
+            this.password = "";
+            this.privileges = "";// or null
+        }
     }
 
     @Override

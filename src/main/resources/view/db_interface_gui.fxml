@@ -15,7 +15,7 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
-
+<?import javafx.scene.control.ComboBox?>
 <AnchorPane fx:id="anchorPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="920.0" styleClass="anchor_pane" xmlns="http://javafx.com/javafx/20.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="viewmodel.DB_GUI_Controller">
     <children>
         <BorderPane fx:id="borderPane" layoutX="-2.0" layoutY="-3.0" prefHeight="597.0" prefWidth="908.0">
@@ -31,12 +31,20 @@
                             </items>
                         </Menu>
                   <Menu mnemonicParsing="false" styleClass="menu_options" text="Edit">
-                     <items>
+
+                      <items>
                         <MenuItem fx:id="editItem" mnemonicParsing="true" styleClass="menu_items" text="_Edit       Ctrl+E" />
                         <MenuItem fx:id="deleteItem" mnemonicParsing="true" styleClass="menu_items" text="_Delete        Ctrl+D" />
                         <MenuItem fx:id="ClearItem" mnemonicParsing="false" styleClass="menu_items" text="Clea_r        Ctrl+R" />
                         <MenuItem fx:id="CopyItem" mnemonicParsing="false" styleClass="menu_items" text="_Copy       Ctrl+C" />
+                         <Menu text="File">
+
+                         </Menu>
+                          <ComboBox fx:id="majorComboBox" prefWidth="150" />
+
                      </items>
+                      <MenuItem text="Import CSV file" onAction="#importCSV" />
+                      <MenuItem text="Export CSV file" onAction="#exportCSV" />
                   </Menu>
                         <Menu mnemonicParsing="false" styleClass="menu_options" text="Theme">
                             <items>
@@ -147,6 +155,8 @@
          <padding>
             <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
          </padding>
+            <Label fx:id="statusLabel" text="" />
+
         </BorderPane>
     </children>
 </AnchorPane>

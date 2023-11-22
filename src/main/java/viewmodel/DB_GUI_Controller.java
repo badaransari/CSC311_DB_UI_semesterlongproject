@@ -1,6 +1,8 @@
 package viewmodel;
 
+import com.sun.javafx.menu.MenuItemBase;
 import dao.DbConnectivityClass;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -18,10 +20,11 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import model.Person;
 import service.MyLogger;
 
-import java.io.File;
+import java.io.*;
 import java.net.URL;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -29,6 +32,7 @@ import java.util.ResourceBundle;
 
 public class DB_GUI_Controller implements Initializable {
 
+    public Label statusLabel;
     @FXML
     TextField first_name, last_name, department, major, email, imageURL;
     @FXML
@@ -43,6 +47,13 @@ public class DB_GUI_Controller implements Initializable {
     private TableColumn<Person, String> tv_fn, tv_ln, tv_department, tv_major, tv_email;
     private final DbConnectivityClass cnUtil = new DbConnectivityClass();
     private final ObservableList<Person> data = cnUtil.getData();
+    private MenuItemBase editRecord;
+    private MenuItemBase deleteButton;
+    private MenuItemBase addButton;
+    private MenuItemBase editMenuItem;
+    private MenuItemBase deleteMenuItem;
+    @FXML
+    private ComboBox<Major> majorComboBox;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -54,6 +65,69 @@ public class DB_GUI_Controller implements Initializable {
             tv_major.setCellValueFactory(new PropertyValueFactory<>("major"));
             tv_email.setCellValueFactory(new PropertyValueFactory<>("email"));
             tv.setItems(data);
+            // Disable "Edit" button initially
+            editRecord.setDisable(true);
+
+            // Add a listener to enable/disable "Edit" button based on selection
+            tv.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+                if (newSelection != null) {
+                    // Enable "Edit" button when a record is selected
+                    editRecord.setDisable(false);
+                } else {
+                    // Disable "Edit" button when no record is selected
+                    editRecord.setDisable(true);
+                }
+            });
+// Disable "Edit" and "Delete" menu items initially
+            editMenuItem.setDisable(true);
+            deleteMenuItem.setDisable(true);
+
+            // Add a listener to enable/disable menu items based on selection
+            tv.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+                if (newSelection != null) {
+                    // Enable "Edit" and "Delete" menu items when a record is selected
+                    editMenuItem.setDisable(false);
+                    deleteMenuItem.setDisable(false);
+                } else {
+                    // Disable "Edit" and "Delete" menu items when no record is selected
+                    editMenuItem.setDisable(true);
+                    deleteMenuItem.setDisable(true);
+                }
+            });
+
+// Disable "Add" button initially
+            addButton.setDisable(true);
+
+            // Add listeners to form fields for validation
+            first_name.textProperty().addListener((observable, oldValue, newValue) -> validateForm());
+            last_name.textProperty().addListener((observable, oldValue, newValue) -> validateForm());
+            department.textProperty().addListener((observable, oldValue, newValue) -> validateForm());
+            major.textProperty().addListener((observable, oldValue, newValue) -> validateForm());
+            email.textProperty().addListener((observable, oldValue, newValue) -> validateForm());
+            imageURL.textProperty().addListener((observable, oldValue, newValue) -> validateForm());
+
+// Disable "Delete" button initially
+            deleteButton.setDisable(true);
+
+            // Add a listener to enable/disable "Delete" button based on selection
+            tv.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+                if (newSelection != null) {
+                    // Enable "Delete" button when a record is selected
+                    deleteButton.setDisable(false);
+                } else {
+                    // Disable "Delete" button when no record is selected
+                    deleteButton.setDisable(true);
+                }
+            });
+
+            // Initialize the Major with enum values
+            majorComboBox.setItems(FXCollections.observableArrayList(Major.values()));
+            majorComboBox.getSelectionModel().selectFirst();
+
+
+            // Clear status label
+            statusLabel.setText("");
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -124,6 +198,9 @@ public class DB_GUI_Controller implements Initializable {
         data.remove(p);
         data.add(index, p2);
         tv.getSelectionModel().select(index);
+         // Set status message
+        setStatusMessage("Record updated successfully.");
+
     }
 
     @FXML
@@ -143,10 +220,70 @@ public class DB_GUI_Controller implements Initializable {
         }
     }
 
+   // @FXML
+    //protected void addRecord() {
+     //   showSomeone();
+    //}
+
     @FXML
     protected void addRecord() {
-        showSomeone();
+        if (validateForm()) {
+            String firstName = first_name.getText().trim();
+            String lastName = last_name.getText().trim();
+            String departmentValue = department.getText().trim();
+            Major majorValue = majorComboBox.getValue(); // Use the selected value from the ComboBox
+            String emailValue = email.getText().trim();
+            String imageURLValue = imageURL.getText().trim();
+
+            // Perform field-level validation
+            if (firstName.isEmpty() || lastName.isEmpty() || departmentValue.isEmpty() ||
+                    majorValue == null || emailValue.isEmpty() || imageURLValue.isEmpty()) {
+                // Show an alert or handle validation error
+                showAlert("All fields must be filled.");
+                return;
+            }
+
+            // If all validations pass, proceed to add the record
+            Person p = new Person(firstName, lastName, departmentValue, major, emailValue, imageURLValue);
+            cnUtil.insertUser(p);
+            cnUtil.retrieveId(p);
+            p.setId(cnUtil.retrieveId(p));
+            data.add(p);
+            clearForm();
+            // Set status message
+            setStatusMessage("Record added successfully.");
+
+        }
     }
+
+    private void setStatusMessage(String s) {
+        statusLabel.setText(s);
+
+        // You can clear the status message after a certain duration if needed
+        PauseTransition visiblePause = new PauseTransition(Duration.seconds(5));
+        visiblePause.setOnFinished(event -> statusLabel.setText(""));
+        visiblePause.play();
+    }
+
+
+    private boolean validateForm() {
+        return true;
+    }
+
+
+
+    private void showAlert(String s) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setHeaderText(null);
+        alert.setContentText(s);
+        alert.showAndWait();
+    }
+
+
+
+
+
 
     @FXML
     protected void selectedItemTV(MouseEvent mouseEvent) {
@@ -214,7 +351,61 @@ public class DB_GUI_Controller implements Initializable {
         });
     }
 
+
+    @FXML
+    protected void importCSV() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Import CSV File");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        File selectedFile = fileChooser.showOpenDialog(tv.getScene().getWindow());
+
+        if (selectedFile != null) {
+            // Implement logic to read data from the CSV file and update your data model
+            // For example, you can use a CSV parsing library or implement a simple CSV reader.
+            // Here, I assume a simple CSV structure with comma-separated values.
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(selectedFile))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String[] parts = line.split(",");
+                    // Assuming your Person class has appropriate constructors
+                    Person person = new Person(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
+                    data.add(person);
+                }
+                setStatusMessage("CSV file imported successfully.");
+            } catch (IOException e) {
+                setStatusMessage("Error importing CSV file: " + e.getMessage());
+            }
+        }
+    }
+
+    @FXML
+    protected void exportCSV() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Export CSV File");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        File selectedFile = fileChooser.showSaveDialog(tv.getScene().getWindow());
+
+        if (selectedFile != null) {
+            // Implement logic to write data to the CSV file
+            // For example, you can use a CSV writing library or manually create a CSV string.
+
+            try (PrintWriter writer = new PrintWriter(selectedFile)) {
+                for (Person person : data) {
+                    // Assuming your Person class has appropriate getters
+                    String csvLine = String.join(",", person.getFirstName(), person.getLastName(), person.getDepartment(),
+                            person.getMajor(), person.getEmail(), person.getImageURL());
+                    writer.println(csvLine);
+                }
+                setStatusMessage("CSV file exported successfully.");
+            } catch (IOException e) {
+                setStatusMessage("Error exporting CSV file: " + e.getMessage());
+            }
+        }
+    }
+
     private static enum Major {Business, CSC, CPIS}
+
 
     private static class Results {
 
